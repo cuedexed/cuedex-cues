@@ -1,0 +1,73 @@
+# Every pull request is verified by the same rules a CueDex server applies (see README "How a set gets here").
+# pull_request_target: the workflow and the verifier come from the BASE branch, so a pull request cannot change its own
+# check; the pull request's files are only READ as data by the pinned verifier binary (nothing from it is executed),
+# with a read-only token and no persisted credentials.
+name: verify
+on:
+  pull_request_target:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: check out the pull request's files (data only)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: only sets/, fingerprints/ and the derived files may change
+        if: github.event_name == 'pull_request_target'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          bad=$(git diff --name-only "$BASE"...HEAD | grep -Ev '^(sets/[0-9a-f]{64}/([0-9a-f]{64}|set)\.json|fingerprints/[0-9a-f]{64}\.fp|recordings/[0-9a-f]{64}\.json|index\.json)$' || true)
+          if [ -n "$bad" ]; then echo "files outside the cue data:"; echo "$bad"; exit 1; fi
+      - name: fetch the verifier (CueDex release binary, pinned by sha256)
+        env:
+          VERIFIER_URL: ${{ vars.CUEDEX_VERIFIER_URL }}
+          VERIFIER_SHA256: ${{ vars.CUEDEX_VERIFIER_SHA256 }}
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/cuedex-dbserver" "$VERIFIER_URL"
+          echo "$VERIFIER_SHA256  $RUNNER_TEMP/cuedex-dbserver" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/cuedex-dbserver"
+      - name: verify every file and rebuild the index (strict)
+        run: '"$RUNNER_TEMP/cuedex-dbserver" repo-index --dir . --strict'
+      - name: the committed index is exactly the rebuilt one
+        run: |
+          git status --porcelain -- index.json recordings sets
+          test -z "$(git status --porcelain -- index.json recordings sets)"
+  bundle:
+    needs: verify
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: fetch the verifier (pinned by sha256)
+        env:
+          VERIFIER_URL: ${{ vars.CUEDEX_VERIFIER_URL }}
+          VERIFIER_SHA256: ${{ vars.CUEDEX_VERIFIER_SHA256 }}
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/cuedex-dbserver" "$VERIFIER_URL"
+          echo "$VERIFIER_SHA256  $RUNNER_TEMP/cuedex-dbserver" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/cuedex-dbserver"
+      - name: build the offline bundle (the authored files; unsigned — CueDex verifies every author signature on import)
+        run: |
+          "$RUNNER_TEMP/cuedex-dbserver" repo-bundle --dir . --out cuedex-cues.cdxr
+          sha256sum cuedex-cues.cdxr | tee cuedex-cues.cdxr.sha256
+      - name: publish it as the bundle-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view bundle-latest -R "$GITHUB_REPOSITORY" > /dev/null 2>&1 || gh release create bundle-latest -R "$GITHUB_REPOSITORY" --title "Offline bundle (latest)" --notes "Rebuilt by the bundle job on every merge to main. Import in CueDex: Library → Shared → Get the repository's bundle." --latest=false
+          gh release upload bundle-latest cuedex-cues.cdxr cuedex-cues.cdxr.sha256 --clobber -R "$GITHUB_REPOSITORY"
