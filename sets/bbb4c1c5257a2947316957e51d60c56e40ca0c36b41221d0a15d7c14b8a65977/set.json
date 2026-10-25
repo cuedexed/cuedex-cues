@@ -1,0 +1,17 @@
+{
+  "id": "bbb4c1c5257a2947316957e51d60c56e40ca0c36b41221d0a15d7c14b8a65977",
+  "recording": "1ed84615ab6fe701f7fb576bbed31d20c7e5d18d840843697b9a857fd46653bd",
+  "author_key": "2087240e2001a2759d4efd7c24f4fe844264944925ba8b0724ea4bf71e4207dd",
+  "head": "bbb4c1c5257a2947316957e51d60c56e40ca0c36b41221d0a15d7c14b8a65977",
+  "state": "published",
+  "fork_of": null,
+  "fork_of_version": null,
+  "versions": [
+    {
+      "id": "bbb4c1c5257a2947316957e51d60c56e40ca0c36b41221d0a15d7c14b8a65977",
+      "parent": null,
+      "seq": 1,
+      "created": "2026-10-25T02:18:45Z"
+    }
+  ]
+}

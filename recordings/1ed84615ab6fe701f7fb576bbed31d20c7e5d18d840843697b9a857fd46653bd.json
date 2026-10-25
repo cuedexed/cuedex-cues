@@ -1,0 +1,32 @@
+{
+  "id": "1ed84615ab6fe701f7fb576bbed31d20c7e5d18d840843697b9a857fd46653bd",
+  "title": "Gone",
+  "artist": "BT",
+  "isrc": null,
+  "mbid": null,
+  "duration_ms": 375243,
+  "copies": [
+    {
+      "fp_hash": "0ada5eaeb32c16cac2d419460ecace747d1714575244ad804d016007994e7a67",
+      "duration_ms": 375243,
+      "offset_ms": 0.0,
+      "source": "file",
+      "reference": true
+    }
+  ],
+  "platform_refs": [],
+  "sets": [
+    {
+      "id": "bbb4c1c5257a2947316957e51d60c56e40ca0c36b41221d0a15d7c14b8a65977",
+      "head": "bbb4c1c5257a2947316957e51d60c56e40ca0c36b41221d0a15d7c14b8a65977",
+      "author_key": "2087240e2001a2759d4efd7c24f4fe844264944925ba8b0724ea4bf71e4207dd",
+      "author_name": "Demo Author B",
+      "title": "Arena cues by B",
+      "fork_of": null,
+      "score": 0,
+      "versions": 1,
+      "updated": "2026-10-25T02:18:45Z",
+      "custom_osc": false
+    }
+  ]
+}
